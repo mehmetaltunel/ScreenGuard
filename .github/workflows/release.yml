@@ -147,19 +147,20 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      - name: Get pip cache dir
+        id: pip-cache
+        shell: bash
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       
-      - name: Cache dlib build
+      - name: Cache Python packages
         uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\pip\wheels
-          key: ${{ runner.os }}-dlib-wheels
+          path: |
+            ${{ steps.pip-cache.outputs.dir }}
+            ~\AppData\Local\pip\wheels
+          key: ${{ runner.os }}-py311-dlib-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py311-dlib-
       
       - name: Install Python dependencies
         run: |
@@ -218,10 +219,11 @@ jobs:
           SectionEnd
           "@ | Out-File -FilePath installer.nsi -Encoding ASCII
       
+      - name: Install NSIS
+        run: choco install nsis -y
+      
       - name: Build NSIS installer
-        uses: joncloud/makensis-action@v4
-        with:
-          script-file: installer.nsi
+        run: makensis installer.nsi
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
