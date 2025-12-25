@@ -34,13 +34,17 @@ def hide_from_dock():
 # Hide from Dock on macOS
 hide_from_dock()
 
+# Create log directory if it doesn't exist
+log_dir = Path.home() / ".screenguard"
+log_dir.mkdir(parents=True, exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(Path.home() / ".screenguard" / "screenguard.log")
+        logging.FileHandler(log_dir / "screenguard.log")
     ]
 )
 

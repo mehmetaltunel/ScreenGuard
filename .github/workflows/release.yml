@@ -16,12 +16,26 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install system dependencies
-        run: brew install cmake create-dmg
+        run: brew install cmake
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Cache dlib build
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip/wheels
+          key: ${{ runner.os }}-dlib-wheels
       
       - name: Install Python dependencies
         run: |
@@ -34,7 +48,6 @@ jobs:
       
       - name: Create Info.plist
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
           cat > Info.plist << 'PLIST_EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -54,6 +67,8 @@ jobs:
               <string>ScreenGuard</string>
               <key>CFBundlePackageType</key>
               <string>APPL</string>
+              <key>CFBundleIconFile</key>
+              <string>icon.icns</string>
               <key>LSUIElement</key>
               <true/>
               <key>NSCameraUsageDescription</key>
@@ -64,12 +79,29 @@ jobs:
           </plist>
           PLIST_EOF
       
+      - name: Create app icon
+        run: |
+          mkdir -p icon.iconset
+          sips -z 16 16     logo.jpeg --out icon.iconset/icon_16x16.png
+          sips -z 32 32     logo.jpeg --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     logo.jpeg --out icon.iconset/icon_32x32.png
+          sips -z 64 64     logo.jpeg --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   logo.jpeg --out icon.iconset/icon_128x128.png
+          sips -z 256 256   logo.jpeg --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   logo.jpeg --out icon.iconset/icon_256x256.png
+          sips -z 512 512   logo.jpeg --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   logo.jpeg --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024 logo.jpeg --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o icon.icns
+      
       - name: Build macOS App
         run: |
           pyinstaller --name ScreenGuard \
             --onedir \
             --windowed \
+            --icon icon.icns \
             --add-data "logo.jpeg:." \
+            --add-data "icon.icns:." \
             --hidden-import pynput.keyboard._darwin \
             --hidden-import pynput.mouse._darwin \
             --hidden-import face_recognition \
@@ -78,6 +110,10 @@ jobs:
             src/screenguard/main.py
           
           cp Info.plist dist/ScreenGuard.app/Contents/Info.plist
+          cp icon.icns dist/ScreenGuard.app/Contents/Resources/icon.icns
+          
+          # Ad-hoc sign the app
+          codesign --force --deep --sign - dist/ScreenGuard.app
       
       - name: Create DMG
         run: |
@@ -105,11 +141,25 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Cache dlib build
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\wheels
+          key: ${{ runner.os }}-dlib-wheels
+      
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip wheel setuptools
           pip install pyinstaller
-          pip install dlib --no-cache-dir
+          pip install dlib
           pip install face_recognition
           pip install -r requirements.txt
       
@@ -173,7 +223,8 @@ jobs:
 
           **Windows:**
           1. EXE dosyasini indirin
-          2. Cift tiklayarak calistirin
+          2. SmartScreen uyarisi cikarsa "More info" > "Run anyway" tiklayin
+          3. Cift tiklayarak calistirin
           EOF
       
       - name: Create Release
