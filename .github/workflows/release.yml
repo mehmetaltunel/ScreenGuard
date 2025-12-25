@@ -118,30 +118,27 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: ScreenGuard ${{ steps.get_version.outputs.VERSION }}
-          body: |
-            ## ScreenGuard ${{ steps.get_version.outputs.VERSION }}
-            
-            ### 🔒 Otomatik Ekran Kilitleme Uygulaması
-            
-            **Özellikler:**
-            - 👤 Yüz tanıma ile güvenlik
-            - ⌨️ Fare/klavye hareketsizlik algılama
-            - 🔔 Bildirimler
-            
-            ### İndirmeler
-            - **macOS:** `ScreenGuard-macOS.dmg`
-            - **Windows:** `ScreenGuard.exe`
-            
-            ---
-            _Daha fazla bilgi için [README](https://github.com/${{ github.repository }}/blob/main/README.md) dosyasına bakın._
-          files: |
-            ./release/ScreenGuard-macOS.dmg
-            ./release/ScreenGuard.exe
-          draft: false
-          prerelease: false
+      - name: Clone release repo and push release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+        run: |
+          git clone https://${GH_TOKEN}@github.com/mehmetaltunel/screenGuard-release.git release-repo
+          cd release-repo
+          
+          # Create release using gh CLI
+          gh release create "${{ steps.get_version.outputs.VERSION }}" \
+            --title "ScreenGuard ${{ steps.get_version.outputs.VERSION }}" \
+            --notes "## ScreenGuard ${{ steps.get_version.outputs.VERSION }}
+          
+          ### 🔒 Otomatik Ekran Kilitleme Uygulaması
+          
+          **Özellikler:**
+          - 👤 Yüz tanıma ile güvenlik
+          - ⌨️ Fare/klavye hareketsizlik algılama
+          - 🔔 Bildirimler
+          
+          ### İndirmeler
+          - **macOS:** ScreenGuard-macOS.dmg
+          - **Windows:** ScreenGuard.exe" \
+            ../release/ScreenGuard-macOS.dmg \
+            ../release/ScreenGuard.exe
