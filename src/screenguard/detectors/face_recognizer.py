@@ -91,6 +91,11 @@ class FaceRecognizer(BaseDetector):
         with self._encodings_lock:
             return list(self._known_names)
     
+    @property
+    def current_detected_name(self) -> Optional[str]:
+        """Get name of currently detected face."""
+        return getattr(self, '_current_name', None)
+    
     def _load_encodings(self) -> None:
         """Load face encodings from file."""
         encodings_file = get_encodings_file()
@@ -341,6 +346,7 @@ class FaceRecognizer(BaseDetector):
             if len(faces) > 0:
                 result["face_found"] = True
                 result["authorized"] = True  # No registered faces = any face is authorized
+                result["name"] = "(Kayıtlı yüz yok - herkes geçerli)"
             
             return result
         
@@ -395,9 +401,11 @@ class FaceRecognizer(BaseDetector):
         
         if result["authorized"]:
             # Authorized user detected
+            name = result.get("name", "Unknown")
+            self._current_name = name
+            
             if not self._authorized_detected:
-                name = result.get("name", "Unknown")
-                logger.info(f"Authorized face detected: {name}")
+                logger.info(f"✓ Yüz algılandı: {name}")
                 self._event_bus.emit(Event(
                     type=EventType.FACE_DETECTED,
                     data={"name": name},
@@ -405,7 +413,7 @@ class FaceRecognizer(BaseDetector):
                 ))
             
             if self._face_lost_time is not None:
-                logger.info("Authorized user returned - cancelling lock")
+                logger.info(f"✓ {name} geri döndü - kilitleme iptal")
                 
                 # Cancel warning overlay
                 try:
@@ -442,7 +450,9 @@ class FaceRecognizer(BaseDetector):
                     self._last_unknown_face_time = current_time
             
             if self._authorized_detected:
-                logger.info(f"Authorized face lost ({reason}) - starting countdown")
+                reason_msg = "bilinmeyen yüz" if reason == "unknown_face" else "yüz yok"
+                logger.info(f"✗ Yüz kayboldu ({reason_msg}) - geri sayım başladı")
+                self._current_name = None
                 self._face_lost_time = current_time
                 self._authorized_detected = False
                 self._warning_shown = False

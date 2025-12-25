@@ -1,0 +1,147 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install system dependencies
+        run: |
+          brew install cmake
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install cmake
+          pip install dlib
+          pip install face_recognition
+          pip install -r requirements.txt
+          pip install pyobjc-framework-Cocoa
+      
+      - name: Build macOS App
+        run: |
+          pyinstaller --name ScreenGuard \
+            --onefile \
+            --windowed \
+            --icon logo.jpeg \
+            --add-data "logo.jpeg:." \
+            --hidden-import pynput.keyboard._darwin \
+            --hidden-import pynput.mouse._darwin \
+            --hidden-import face_recognition \
+            --collect-data face_recognition_models \
+            src/screenguard/main.py
+      
+      - name: Create DMG
+        run: |
+          mkdir -p dist/dmg
+          cp -r dist/ScreenGuard.app dist/dmg/ 2>/dev/null || cp dist/ScreenGuard dist/dmg/
+          hdiutil create -volname "ScreenGuard" -srcfolder dist/dmg -ov -format UDZO dist/ScreenGuard-macOS.dmg
+      
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenGuard-macOS
+          path: dist/ScreenGuard-macOS.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install cmake
+          pip install dlib
+          pip install face_recognition
+          pip install -r requirements.txt
+      
+      - name: Build Windows EXE
+        run: |
+          pyinstaller --name ScreenGuard `
+            --onefile `
+            --windowed `
+            --icon logo.jpeg `
+            --add-data "logo.jpeg;." `
+            --hidden-import pynput.keyboard._win32 `
+            --hidden-import pynput.mouse._win32 `
+            --hidden-import face_recognition `
+            --collect-data face_recognition_models `
+            src/screenguard/main.py
+      
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenGuard-Windows
+          path: dist/ScreenGuard.exe
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ScreenGuard-macOS
+          path: ./release
+      
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ScreenGuard-Windows
+          path: ./release
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ScreenGuard ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## ScreenGuard ${{ steps.get_version.outputs.VERSION }}
+            
+            ### 🔒 Otomatik Ekran Kilitleme Uygulaması
+            
+            **Özellikler:**
+            - 👤 Yüz tanıma ile güvenlik
+            - ⌨️ Fare/klavye hareketsizlik algılama
+            - 🔔 Bildirimler
+            
+            ### İndirmeler
+            - **macOS:** `ScreenGuard-macOS.dmg`
+            - **Windows:** `ScreenGuard.exe`
+            
+            ---
+            _Daha fazla bilgi için [README](https://github.com/${{ github.repository }}/blob/main/README.md) dosyasına bakın._
+          files: |
+            ./release/ScreenGuard-macOS.dmg
+            ./release/ScreenGuard.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

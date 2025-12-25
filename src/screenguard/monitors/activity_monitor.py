@@ -139,10 +139,14 @@ class ActivityMonitor(BaseMonitor):
             ):
                 self._warning_shown = True
                 remaining = timeout - inactive_seconds
-                logger.info(f"Inactivity warning: {remaining:.1f}s remaining")
+                logger.info(f"Hareketsizlik uyarısı: {remaining:.1f}s kaldı")
                 self._event_bus.emit(Event(
                     type=EventType.LOCK_WARNING,
-                    data={"seconds_remaining": remaining, "reason": "inactivity"},
+                    data={
+                        "seconds_remaining": remaining, 
+                        "reason": "inactivity",
+                        "message": "Fare/klavye hareketi yok!"
+                    },
                     source=self.name
                 ))
             

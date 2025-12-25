@@ -247,12 +247,12 @@ class TrayApplication:
     def _on_lock_warning(self, event: Event) -> None:
         """Handle lock warning event."""
         if self._icon and self._settings.show_notifications:
-            seconds = event.data.get("seconds_remaining", 5)
-            message = event.data.get("message", "Dikkat!")
+            seconds = int(event.data.get("seconds_remaining", 5))
+            message = event.data.get("message", "Yüz algılanmadı")
             
             self._icon.notify(
-                title=f"⚠️ {message}",
-                message=f"Ekran {int(seconds)} saniye içinde kilitlenecek!"
+                title="🔒 Ekran Kilitlenecek",
+                message=f"{message}\n{seconds} saniye sonra ekran kapanacak!"
             )
     
     def _on_lock_executed(self, event: Event) -> None:

@@ -333,11 +333,23 @@ def show_settings_window(
         # Registered faces info
         names = face_recognizer.registered_names
         if names:
-            cv2.putText(display, f"Kayitli: {', '.join(names)}", (30, 85), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS["accent_green"], 1)
+            cv2.putText(display, f"Kayitli: {', '.join(names)}", (30, 80), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.45, COLORS["accent_green"], 1)
         else:
-            cv2.putText(display, "Kayitli yuz yok", (30, 85), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS["accent_orange"], 1)
+            cv2.putText(display, "Kayitli yuz yok", (30, 80), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.45, COLORS["accent_orange"], 1)
+        
+        # Current detection status
+        current_name = face_recognizer.current_detected_name
+        if current_name:
+            cv2.putText(display, f"Aktif: {current_name}", (30, 100), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.45, COLORS["accent_blue"], 1)
+        elif settings.face_detection_enabled:
+            cv2.putText(display, "Aktif: Yuz aranıyor...", (30, 100), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.45, COLORS["text_gray"], 1)
+        else:
+            cv2.putText(display, "Kamera: KAPALI", (30, 100), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.45, COLORS["accent_red"], 1)
         
         # Menu items
         menu_items = [

@@ -18,6 +18,22 @@ from screenguard.monitors.activity_monitor import ActivityMonitor
 from screenguard.platform.screen_locker import get_screen_locker, ScreenLocker
 from screenguard.ui.tray import TrayApplication
 
+
+def hide_from_dock():
+    """Hide the application from macOS Dock (run as menu bar only app)."""
+    if sys.platform == "darwin":
+        try:
+            import AppKit
+            info = AppKit.NSBundle.mainBundle().infoDictionary()
+            info["LSUIElement"] = "1"
+        except ImportError:
+            # PyObjC not installed, try alternative method
+            pass
+
+
+# Hide from Dock on macOS
+hide_from_dock()
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -109,12 +125,27 @@ class ScreenGuardApp:
         # Activity monitor
         self._activity_monitor = ActivityMonitor(self._settings, self._event_bus)
         
+        # Find logo file
+        import os
+        logo_path = None
+        # Try common locations
+        possible_paths = [
+            Path(__file__).parent.parent.parent.parent / "logo.jpeg",  # Project root
+            Path(__file__).parent.parent / "assets" / "logo.jpeg",
+            Path(__file__).parent.parent / "logo.jpeg",
+        ]
+        for p in possible_paths:
+            if p.exists():
+                logo_path = p
+                break
+        
         # Tray application
         self._tray_app = TrayApplication(
             settings=self._settings,
             event_bus=self._event_bus,
             on_quit=self.shutdown,
-            face_recognizer=self._face_recognizer
+            face_recognizer=self._face_recognizer,
+            icon_path=logo_path
         )
         
         logger.info("All components initialized")
