@@ -18,14 +18,20 @@ Otomatik ekran kilitleme uygulamasi. Bilgisayar basindan kalktiginizda ekraniniz
 ## Kurulum
 
 ### macOS
+
 1. `ScreenGuard-macOS.dmg` dosyasini indirin
 2. DMG dosyasini acin
-3. ScreenGuard uygulamasini Uygulamalar klasorune surukleyin
-4. Uygulamayi calistirin
+3. ScreenGuard.app'i Applications klasorune surukleyin
+4. Terminal'de asagidaki komutu calistirin:
+   ```
+   xattr -cr /Applications/ScreenGuard.app
+   ```
+5. Uygulamayi calistirin
 
 ### Windows
+
 1. `ScreenGuard.exe` dosyasini indirin
-2. Dogrudan calistirin veya istediginiz bir klasore tasiyip calistirin
+2. Cift tiklayarak calistirin
 
 ## Kullanim
 
