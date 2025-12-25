@@ -400,9 +400,9 @@ def show_settings_window(
         
         if key == 27:  # ESC
             break
-        elif key == 82 or key == 0:  # UP
+        elif key in [82, 0, 72, 119, 87]:  # UP (macOS: 82/0, Windows: 72, w/W: 119/87)
             selected = (selected - 1) % len(menu_items)
-        elif key == 84 or key == 1:  # DOWN
+        elif key in [84, 1, 80, 115, 83]:  # DOWN (macOS: 84/1, Windows: 80, s/S: 115/83)
             selected = (selected + 1) % len(menu_items)
         elif key == 13:  # ENTER
             action = menu_items[selected][1]
@@ -440,9 +440,9 @@ def show_settings_window(
                         if del_key == 27:
                             cv2.destroyWindow("ScreenGuard - Yuz Sil")
                             break
-                        elif del_key == 82 or del_key == 0:
+                        elif del_key in [82, 0, 72, 119, 87]:  # UP
                             delete_selected = (delete_selected - 1) % len(names)
-                        elif del_key == 84 or del_key == 1:
+                        elif del_key in [84, 1, 80, 115, 83]:  # DOWN
                             delete_selected = (delete_selected + 1) % len(names)
                         elif del_key == 13:
                             face_recognizer.remove_face(names[delete_selected])
