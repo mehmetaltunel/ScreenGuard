@@ -223,7 +223,9 @@ jobs:
         run: choco install nsis -y
       
       - name: Build NSIS installer
-        run: makensis installer.nsi
+        run: |
+          $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
+          makensis installer.nsi
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
