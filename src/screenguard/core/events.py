@@ -22,6 +22,7 @@ class EventType(Enum):
     # Face detection events
     FACE_DETECTED = auto()
     FACE_LOST = auto()
+    UNKNOWN_FACE_DETECTED = auto()  # Unknown/unregistered face detected
     
     # Activity events
     ACTIVITY_DETECTED = auto()

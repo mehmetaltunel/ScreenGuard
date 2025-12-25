@@ -10,11 +10,10 @@ import logging
 import signal
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from screenguard.core.events import Event, EventBus, EventType
 from screenguard.core.settings import Settings
-from screenguard.detectors.face_detector import FaceDetector
 from screenguard.monitors.activity_monitor import ActivityMonitor
 from screenguard.platform.screen_locker import get_screen_locker, ScreenLocker
 from screenguard.ui.tray import TrayApplication
@@ -51,7 +50,7 @@ class ScreenGuardApp:
         self._event_bus = EventBus()
         
         # Initialize components
-        self._face_detector: Optional[FaceDetector] = None
+        self._face_recognizer = None  # Will try FaceRecognizer first, fall back to FaceDetector
         self._activity_monitor: Optional[ActivityMonitor] = None
         self._screen_locker: Optional[ScreenLocker] = None
         self._tray_app: Optional[TrayApplication] = None
@@ -95,8 +94,17 @@ class ScreenGuardApp:
             logger.error(f"Failed to initialize screen locker: {e}")
             raise
         
-        # Face detector
-        self._face_detector = FaceDetector(self._settings, self._event_bus)
+        # Try to use FaceRecognizer (with face_recognition library)
+        # Fall back to FaceDetector if not available
+        try:
+            from screenguard.detectors.face_recognizer import FaceRecognizer
+            self._face_recognizer = FaceRecognizer(self._settings, self._event_bus)
+            logger.info("Using FaceRecognizer (with face recognition support)")
+        except ImportError as e:
+            logger.warning(f"face_recognition not available: {e}")
+            logger.info("Falling back to basic FaceDetector")
+            from screenguard.detectors.face_detector import FaceDetector
+            self._face_recognizer = FaceDetector(self._settings, self._event_bus)
         
         # Activity monitor
         self._activity_monitor = ActivityMonitor(self._settings, self._event_bus)
@@ -105,7 +113,8 @@ class ScreenGuardApp:
         self._tray_app = TrayApplication(
             settings=self._settings,
             event_bus=self._event_bus,
-            on_quit=self.shutdown
+            on_quit=self.shutdown,
+            face_recognizer=self._face_recognizer
         )
         
         logger.info("All components initialized")
@@ -114,9 +123,9 @@ class ScreenGuardApp:
         """Start detection and monitoring components."""
         logger.info("Starting detectors...")
         
-        if self._face_detector is not None:
+        if self._face_recognizer is not None:
             try:
-                self._face_detector.start()
+                self._face_recognizer.start()
             except Exception as e:
                 logger.error(f"Failed to start face detector: {e}")
                 # Continue without face detection
@@ -132,7 +141,21 @@ class ScreenGuardApp:
         
         try:
             self._initialize_components()
+            
+            # Run first-time setup if needed
+            if not self._settings.first_run_completed:
+                logger.info("First run - showing setup wizard")
+                self._run_first_time_setup()
+                
+                # Give time for OpenCV to fully cleanup
+                import time
+                import cv2
+                cv2.destroyAllWindows()
+                time.sleep(0.5)
+            
             self._start_detectors()
+            
+            logger.info("Starting tray application...")
             
             # Run tray application (blocking)
             if self._tray_app is not None:
@@ -145,13 +168,31 @@ class ScreenGuardApp:
         finally:
             self.shutdown()
     
+    def _run_first_time_setup(self) -> None:
+        """Run first-time setup wizard."""
+        try:
+            from screenguard.ui.settings_window import run_first_time_setup
+            
+            if self._face_recognizer is not None:
+                success = run_first_time_setup(self._settings, self._face_recognizer)
+                if success:
+                    logger.info("First-time setup completed")
+                else:
+                    logger.info("First-time setup cancelled, exiting")
+                    sys.exit(0)
+        except Exception as e:
+            logger.error(f"First-time setup failed: {e}")
+            # Continue anyway
+            self._settings.first_run_completed = True
+            self._settings.save()
+    
     def shutdown(self) -> None:
         """Shutdown all components gracefully."""
         logger.info("Shutting down ScreenGuard...")
         
         # Stop detectors
-        if self._face_detector is not None:
-            self._face_detector.stop()
+        if self._face_recognizer is not None:
+            self._face_recognizer.stop()
         
         if self._activity_monitor is not None:
             self._activity_monitor.stop()

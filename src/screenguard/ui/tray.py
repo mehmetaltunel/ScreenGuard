@@ -105,7 +105,8 @@ class TrayApplication:
         settings: Settings,
         event_bus: Optional[EventBus] = None,
         on_quit: Optional[Callable[[], None]] = None,
-        icon_path: Optional[Path] = None
+        icon_path: Optional[Path] = None,
+        face_recognizer: Optional[any] = None
     ) -> None:
         """
         Initialize the tray application.
@@ -115,11 +116,13 @@ class TrayApplication:
             event_bus: Event bus for communication
             on_quit: Callback when user quits
             icon_path: Optional path to custom icon
+            face_recognizer: Face recognizer for settings window
         """
         self._settings = settings
         self._event_bus = event_bus or EventBus()
         self._on_quit = on_quit
         self._icon_path = icon_path
+        self._face_recognizer = face_recognizer
         self._icon: Optional[pystray.Icon] = None
         self._status_text = "Active"
         
@@ -127,6 +130,7 @@ class TrayApplication:
         self._event_bus.subscribe(EventType.LOCK_WARNING, self._on_lock_warning)
         self._event_bus.subscribe(EventType.LOCK_EXECUTED, self._on_lock_executed)
         self._event_bus.subscribe(EventType.DETECTOR_ERROR, self._on_detector_error)
+        self._event_bus.subscribe(EventType.UNKNOWN_FACE_DETECTED, self._on_unknown_face)
     
     def _load_icon(self) -> Image.Image:
         """Load or create the tray icon."""
@@ -148,24 +152,35 @@ class TrayApplication:
             ),
             Menu.SEPARATOR,
             MenuItem(
-                lambda text: f"{'✓ ' if self._settings.face_detection_enabled else '  '}Face Detection",
+                "⚙️ Ayarlar",
+                self._open_settings
+            ),
+            Menu.SEPARATOR,
+            MenuItem(
+                lambda text: f"{'✓ ' if self._settings.face_detection_enabled else '  '}Yüz Tanıma",
                 self._toggle_face_detection
             ),
             MenuItem(
-                lambda text: f"{'✓ ' if self._settings.inactivity_detection_enabled else '  '}Inactivity Detection",
+                lambda text: f"{'✓ ' if self._settings.inactivity_detection_enabled else '  '}Hareketsizlik Kilitleme",
                 self._toggle_inactivity_detection
             ),
             Menu.SEPARATOR,
             MenuItem(
-                "Lock Screen Now",
+                "🔒 Şimdi Kilitle",
                 self._lock_now
             ),
             Menu.SEPARATOR,
             MenuItem(
-                "Quit",
+                "❌ Çıkış",
                 self._quit
             )
         )
+    
+    def _open_settings(self, icon: pystray.Icon, item: MenuItem) -> None:
+        """Open the settings window."""
+        logger.info("Opening settings window")
+        from screenguard.ui.settings_window import show_settings_window
+        show_settings_window(self._settings, self._face_recognizer)
     
     def _toggle_face_detection(self, icon: pystray.Icon, item: MenuItem) -> None:
         """Toggle face detection on/off."""
@@ -233,16 +248,11 @@ class TrayApplication:
         """Handle lock warning event."""
         if self._icon and self._settings.show_notifications:
             seconds = event.data.get("seconds_remaining", 5)
-            reason = event.data.get("reason", "unknown")
-            
-            reason_text = {
-                "face_absence": "Yüz algılanmadı",
-                "inactivity": "Aktivite yok"
-            }.get(reason, reason)
+            message = event.data.get("message", "Dikkat!")
             
             self._icon.notify(
-                title="ScreenGuard",
-                message=f"{reason_text} - Ekran {seconds:.0f} saniye içinde kilitlenecek!"
+                title=f"⚠️ {message}",
+                message=f"Ekran {int(seconds)} saniye içinde kilitlenecek!"
             )
     
     def _on_lock_executed(self, event: Event) -> None:
@@ -257,6 +267,15 @@ class TrayApplication:
             self._icon.notify(
                 title="ScreenGuard Error",
                 message=f"Hata: {error}"
+            )
+    
+    def _on_unknown_face(self, event: Event) -> None:
+        """Handle unknown face detected event."""
+        if self._icon and self._settings.show_notifications:
+            message = event.data.get("message", "Bilinmeyen yüz algılandı!")
+            self._icon.notify(
+                title="⚠️ ScreenGuard Uyarı",
+                message=message
             )
     
     def run(self) -> None:

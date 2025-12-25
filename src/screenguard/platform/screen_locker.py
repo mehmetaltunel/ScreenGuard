@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ScreenLocker(ABC):
     """
+  
     Abstract base class for platform-specific screen lockers.
     
     Each platform (Windows, macOS, Linux) has its own implementation.
@@ -74,16 +75,16 @@ class MacOSScreenLocker(ScreenLocker):
     def lock(self) -> bool:
         """Lock the macOS screen using multiple fallback methods."""
         
-        # Method 1: Use osascript to activate screen saver (most reliable)
-        if self._lock_via_osascript():
-            return True
-        
-        # Method 2: Use pmset to sleep display
+        # Method 1: Use pmset to sleep display (fastest, no popup)
         if self._lock_via_pmset():
             return True
         
-        # Method 3: Use loginwindow via osascript
+        # Method 2: Use loginwindow/ScreenSaver
         if self._lock_via_loginwindow():
+            return True
+        
+        # Method 3: Use osascript as last resort (may trigger Script Editor)
+        if self._lock_via_osascript():
             return True
         
         logger.error("All macOS lock methods failed")

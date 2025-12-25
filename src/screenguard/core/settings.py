@@ -52,6 +52,7 @@ class Settings:
     camera_index: int = 0
     show_notifications: bool = True
     notification_seconds_before: int = 5
+    first_run_completed: bool = False  # True after first-time setup is done
     
     # Internal state (not persisted)
     _config_file: Optional[Path] = field(default=None, repr=False, compare=False)
