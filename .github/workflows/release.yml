@@ -172,20 +172,63 @@ jobs:
       - name: Build Windows EXE
         run: |
           pyinstaller --name ScreenGuard `
-            --onefile `
+            --onedir `
             --windowed `
             --add-data "logo.jpeg;." `
             --hidden-import pynput.keyboard._win32 `
             --hidden-import pynput.mouse._win32 `
             --hidden-import face_recognition `
+            --hidden-import pystray._win32 `
             --collect-data face_recognition_models `
             src/screenguard/main.py
+      
+      - name: Create NSIS installer script
+        run: |
+          @"
+          !include "MUI2.nsh"
+          
+          Name "ScreenGuard"
+          OutFile "ScreenGuard-Setup.exe"
+          InstallDir "`$PROGRAMFILES\ScreenGuard"
+          RequestExecutionLevel admin
+          
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_LANGUAGE "English"
+          
+          Section "Install"
+            SetOutPath "`$INSTDIR"
+            File /r "dist\ScreenGuard\*.*"
+            
+            CreateDirectory "`$SMPROGRAMS\ScreenGuard"
+            CreateShortcut "`$SMPROGRAMS\ScreenGuard\ScreenGuard.lnk" "`$INSTDIR\ScreenGuard.exe"
+            CreateShortcut "`$DESKTOP\ScreenGuard.lnk" "`$INSTDIR\ScreenGuard.exe"
+            
+            WriteUninstaller "`$INSTDIR\Uninstall.exe"
+            
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenGuard" "DisplayName" "ScreenGuard"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenGuard" "UninstallString" "`$INSTDIR\Uninstall.exe"
+          SectionEnd
+          
+          Section "Uninstall"
+            Delete "`$DESKTOP\ScreenGuard.lnk"
+            RMDir /r "`$SMPROGRAMS\ScreenGuard"
+            RMDir /r "`$INSTDIR"
+            DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenGuard"
+          SectionEnd
+          "@ | Out-File -FilePath installer.nsi -Encoding ASCII
+      
+      - name: Build NSIS installer
+        uses: joncloud/makensis-action@v4
+        with:
+          script-file: installer.nsi
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: ScreenGuard-Windows
-          path: dist/ScreenGuard.exe
+          path: ScreenGuard-Setup.exe
+
 
   release:
     needs: [build-macos, build-windows]
@@ -228,9 +271,10 @@ jobs:
           4. Uygulamayi calistirin
 
           **Windows:**
-          1. EXE dosyasini indirin
+          1. Setup dosyasini indirin ve calistirin
           2. SmartScreen uyarisi cikarsa "More info" > "Run anyway" tiklayin
-          3. Cift tiklayarak calistirin
+          3. Kurulum sihirbazini takip edin
+          4. Baslat menusu veya masaustunden calistirin
           EOF
       
       - name: Create Release
@@ -242,4 +286,5 @@ jobs:
             --title "ScreenGuard ${{ steps.version.outputs.VERSION }}" \
             --notes-file release_notes.md \
             ./release/ScreenGuard-macOS.dmg \
-            ./release/ScreenGuard.exe
+            ./release/ScreenGuard-Setup.exe
+

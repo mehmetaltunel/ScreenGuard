@@ -217,9 +217,11 @@ class ScreenGuardApp:
                     sys.exit(0)
         except Exception as e:
             logger.error(f"First-time setup failed: {e}")
-            # Continue anyway
-            self._settings.first_run_completed = True
-            self._settings.save()
+        
+        # Always mark first run as completed to prevent loop
+        self._settings.first_run_completed = True
+        self._settings.save()
+        logger.info("Settings saved - first run completed")
     
     def shutdown(self) -> None:
         """Shutdown all components gracefully."""
