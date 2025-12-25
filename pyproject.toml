@@ -1,0 +1,50 @@
+[project]
+name = "screenguard"
+version = "1.0.0"
+description = "Cross-platform automatic screen lock with face detection and inactivity monitoring"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Mehmet Altunel"}
+]
+keywords = ["screen-lock", "face-detection", "security", "cross-platform"]
+
+dependencies = [
+    "opencv-python>=4.8.0",
+    "pynput>=1.7.6",
+    "pystray>=0.19.5",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+screenguard = "screenguard.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
