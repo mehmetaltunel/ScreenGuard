@@ -135,11 +135,25 @@ class FaceDetector(BaseDetector):
         if self._capture is None or self._cascade is None:
             return False
         
-        # Capture frame
-        ret, frame = self._capture.read()
-        if not ret or frame is None:
-            logger.warning("Failed to capture frame")
+        # Try to capture frame with retries
+        frame = None
+        for attempt in range(3):
+            ret, frame = self._capture.read()
+            if ret and frame is not None:
+                break
+            time.sleep(0.05)
+        
+        if frame is None:
+            # Only log occasionally to avoid spam
+            if not hasattr(self, '_frame_fail_count'):
+                self._frame_fail_count = 0
+            self._frame_fail_count += 1
+            if self._frame_fail_count % 20 == 1:  # Log every 20th failure
+                logger.warning(f"Failed to capture frame (count: {self._frame_fail_count})")
             return False
+        
+        # Reset failure count on success
+        self._frame_fail_count = 0
         
         # Convert to grayscale for detection
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
