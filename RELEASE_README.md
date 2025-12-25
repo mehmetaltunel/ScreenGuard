@@ -2,6 +2,12 @@
 
 Otomatik ekran kilitleme uygulamasi. Bilgisayar basindan kalktiginizda ekraninizi otomatik olarak kilitler.
 
+## Indirme
+
+**Son Surum:** [Buradan Indir](https://github.com/mehmetaltunel/screenGuard-release/releases/latest)
+
+**Tum Surumler:** [Tum Surumler](https://github.com/mehmetaltunel/screenGuard-release/releases)
+
 ## Ozellikler
 
 - **Yuz Tanima**: Kayitli yuzunuzu tanimadiginda ekrani kilitler

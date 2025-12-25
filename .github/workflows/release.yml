@@ -124,7 +124,7 @@ jobs:
       
       - name: Clone release repo and push release
         env:
-          GH_TOKEN: ${{ secrets.semapToken }}
+          GH_TOKEN: ${{ secrets.screenGuardToken }}
         run: |
           git clone https://${GH_TOKEN}@github.com/mehmetaltunel/screenGuard-release.git release-repo
           cd release-repo
