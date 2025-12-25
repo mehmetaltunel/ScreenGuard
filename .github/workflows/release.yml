@@ -35,7 +35,7 @@ jobs:
       - name: Create Info.plist
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          cat > Info.plist << EOF
+          cat > Info.plist << 'PLIST_EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -47,9 +47,9 @@ jobs:
               <key>CFBundleIdentifier</key>
               <string>com.mehmetaltunel.screenguard</string>
               <key>CFBundleVersion</key>
-              <string>${VERSION}</string>
+              <string>1.0.0</string>
               <key>CFBundleShortVersionString</key>
-              <string>${VERSION}</string>
+              <string>1.0.0</string>
               <key>CFBundleExecutable</key>
               <string>ScreenGuard</string>
               <key>CFBundlePackageType</key>
@@ -62,7 +62,7 @@ jobs:
               <true/>
           </dict>
           </plist>
-          EOF
+          PLIST_EOF
       
       - name: Build macOS App
         run: |
@@ -81,23 +81,10 @@ jobs:
       
       - name: Create DMG
         run: |
-          create-dmg \
-            --volname "ScreenGuard" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --icon "ScreenGuard.app" 150 190 \
-            --app-drop-link 450 185 \
-            "dist/ScreenGuard-macOS.dmg" \
-            "dist/ScreenGuard.app" || true
-          
-          # Fallback if create-dmg fails
-          if [ ! -f "dist/ScreenGuard-macOS.dmg" ]; then
-            mkdir -p dist/dmg
-            cp -r dist/ScreenGuard.app dist/dmg/
-            ln -s /Applications dist/dmg/Applications
-            hdiutil create -volname "ScreenGuard" -srcfolder dist/dmg -ov -format UDZO dist/ScreenGuard-macOS.dmg
-          fi
+          mkdir -p dist/dmg
+          cp -r dist/ScreenGuard.app dist/dmg/
+          ln -s /Applications dist/dmg/Applications
+          hdiutil create -volname "ScreenGuard" -srcfolder dist/dmg -ov -format UDZO dist/ScreenGuard-macOS.dmg
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -166,36 +153,36 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       
+      - name: Create release notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## Otomatik Ekran Kilitleme Uygulamasi
+
+          ### Ozellikler
+          - Yuz tanima ile guvenlik
+          - Fare/klavye hareketsizlik algilama
+          - Bildirimler
+
+          ### Kurulum
+
+          **macOS:**
+          1. DMG dosyasini indirin
+          2. ScreenGuard.app'i Applications klasorune surukleyin
+          3. Terminal'de calistirin: `xattr -cr /Applications/ScreenGuard.app`
+          4. Uygulamayi calistirin
+
+          **Windows:**
+          1. EXE dosyasini indirin
+          2. Cift tiklayarak calistirin
+          EOF
+      
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.screenGuardToken }}
         run: |
-          cd ./release
           gh release create "${{ steps.version.outputs.VERSION }}" \
             --repo mehmetaltunel/screenGuard-release \
             --title "ScreenGuard ${{ steps.version.outputs.VERSION }}" \
-            --notes "## ScreenGuard ${{ steps.version.outputs.VERSION }}
-
-Otomatik ekran kilitleme uygulamasi.
-
-### Ozellikler
-- Yuz tanima ile guvenlik
-- Fare/klavye hareketsizlik algilama
-- Bildirimler
-
-### Kurulum
-
-**macOS:**
-1. DMG dosyasini indirin
-2. ScreenGuard.app'i Applications klasorune surukleyin
-3. Ilk acilista asagidaki komutu calistirin:
-   \`\`\`
-   xattr -cr /Applications/ScreenGuard.app
-   \`\`\`
-4. Uygulamayi calistirin
-
-**Windows:**
-1. EXE dosyasini indirin
-2. Cift tiklayarak calistirin" \
-            ScreenGuard-macOS.dmg \
-            ScreenGuard.exe
+            --notes-file release_notes.md \
+            ./release/ScreenGuard-macOS.dmg \
+            ./release/ScreenGuard.exe
