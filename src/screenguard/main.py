@@ -131,9 +131,20 @@ class ScreenGuardApp:
         
         # Find logo file
         import os
+        import sys
         logo_path = None
+        
+        # Get base path for PyInstaller bundle
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller bundle
+            base_path = Path(sys._MEIPASS)
+        else:
+            # Running from source
+            base_path = Path(__file__).parent.parent.parent.parent
+        
         # Try common locations
         possible_paths = [
+            base_path / "logo.jpeg",  # PyInstaller bundle or project root
             Path(__file__).parent.parent.parent.parent / "logo.jpeg",  # Project root
             Path(__file__).parent.parent / "assets" / "logo.jpeg",
             Path(__file__).parent.parent / "logo.jpeg",
@@ -141,6 +152,7 @@ class ScreenGuardApp:
         for p in possible_paths:
             if p.exists():
                 logo_path = p
+                logger.info(f"Found logo at: {logo_path}")
                 break
         
         # Tray application

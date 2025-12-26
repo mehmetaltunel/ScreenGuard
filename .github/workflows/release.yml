@@ -48,7 +48,8 @@ jobs:
       
       - name: Create Info.plist
         run: |
-          cat > Info.plist << 'PLIST_EOF'
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cat > Info.plist << PLIST_EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -60,9 +61,9 @@ jobs:
               <key>CFBundleIdentifier</key>
               <string>com.mehmetaltunel.screenguard</string>
               <key>CFBundleVersion</key>
-              <string>1.0.0</string>
+              <string>${VERSION}</string>
               <key>CFBundleShortVersionString</key>
-              <string>1.0.0</string>
+              <string>${VERSION}</string>
               <key>CFBundleExecutable</key>
               <string>ScreenGuard</string>
               <key>CFBundlePackageType</key>

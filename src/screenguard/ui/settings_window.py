@@ -186,19 +186,19 @@ def run_face_registration(
             
             cv2.imshow("ScreenGuard", display)
             
-            key = cv2.waitKey(1) & 0xFF
+            key = cv2.waitKeyEx(1)
             
             if key == 27:  # ESC
                 break
             elif typing_mode:
                 if key == 13 and input_name.strip():  # ENTER
                     typing_mode = False
-                elif key == 8:  # BACKSPACE
+                elif key == 8 or key == 127:  # BACKSPACE (8 on Win, 127 on some systems)
                     input_name = input_name[:-1]
                 elif 32 <= key < 127:
                     input_name += chr(key)
             else:
-                if key == ord('r') or key == ord('R'):
+                if key in [ord('r'), ord('R')]:
                     typing_mode = True
                 elif key == 32 and len(face_locations) > 0:  # SPACE
                     frame_to_save = camera_frame.copy()
@@ -277,14 +277,14 @@ def run_first_time_setup(
         
         cv2.imshow("ScreenGuard", display)
         
-        key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKeyEx(1)
         
         if key == 27:  # ESC
             cv2.destroyAllWindows()
             return False
-        elif key == 81 or key == 2:  # LEFT
+        elif key in [2424832, 81, 2, ord('a'), ord('A')]:  # LEFT (Windows: 2424832)
             selected = 0
-        elif key == 83 or key == 3:  # RIGHT
+        elif key in [2555904, 83, 3, ord('d'), ord('D')]:  # RIGHT (Windows: 2555904)
             selected = 1
         elif key == 13:  # ENTER
             cv2.destroyAllWindows()
@@ -396,13 +396,15 @@ def show_settings_window(
         
         cv2.imshow("ScreenGuard Ayarlar", display)
         
-        key = cv2.waitKey(1) & 0xFF
+        # Use waitKeyEx for extended key support on Windows
+        key = cv2.waitKeyEx(1)
         
         if key == 27:  # ESC
             break
-        elif key in [82, 0, 72, 119, 87]:  # UP (macOS: 82/0, Windows: 72, w/W: 119/87)
+        # Arrow keys: Windows uses 2490368 (up), 2621440 (down), macOS uses different codes
+        elif key in [2490368, 82, 0, 72, 119, 87, ord('w'), ord('W')]:  # UP
             selected = (selected - 1) % len(menu_items)
-        elif key in [84, 1, 80, 115, 83]:  # DOWN (macOS: 84/1, Windows: 80, s/S: 115/83)
+        elif key in [2621440, 84, 1, 80, 115, 83, ord('s'), ord('S')]:  # DOWN
             selected = (selected + 1) % len(menu_items)
         elif key == 13:  # ENTER
             action = menu_items[selected][1]
@@ -436,13 +438,13 @@ def show_settings_window(
                         
                         cv2.imshow("ScreenGuard - Yuz Sil", del_display)
                         
-                        del_key = cv2.waitKey(1) & 0xFF
+                        del_key = cv2.waitKeyEx(1)
                         if del_key == 27:
                             cv2.destroyWindow("ScreenGuard - Yuz Sil")
                             break
-                        elif del_key in [82, 0, 72, 119, 87]:  # UP
+                        elif del_key in [2490368, 82, 0, 72, ord('w'), ord('W')]:  # UP
                             delete_selected = (delete_selected - 1) % len(names)
-                        elif del_key in [84, 1, 80, 115, 83]:  # DOWN
+                        elif del_key in [2621440, 84, 1, 80, ord('s'), ord('S')]:  # DOWN
                             delete_selected = (delete_selected + 1) % len(names)
                         elif del_key == 13:
                             face_recognizer.remove_face(names[delete_selected])

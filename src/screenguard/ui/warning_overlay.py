@@ -131,7 +131,7 @@ class WarningOverlay:
                 
                 cv2.imshow(window_name, display)
                 
-                key = cv2.waitKey(100) & 0xFF
+                key = cv2.waitKeyEx(100)
                 if key == 27:  # ESC to cancel (debug)
                     self._cancel_event.set()
                     break
